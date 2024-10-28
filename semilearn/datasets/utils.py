@@ -48,7 +48,9 @@ def split_ssl_data(args, data, targets, num_classes,
 
     if include_lb_to_ulb:
         ulb_idx = np.concatenate([lb_idx, ulb_idx], axis=0)
-    
+
+    #torch.save((lb_idx, ulb_idx), "indices.pth")
+    #assert False
     return data[lb_idx], targets[lb_idx], data[ulb_idx], targets[ulb_idx]
 
 

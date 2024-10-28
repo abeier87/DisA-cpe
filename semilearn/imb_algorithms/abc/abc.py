@@ -50,7 +50,7 @@ class ABC(ImbAlgorithmBase):
             - logger (`logging.Logger`):
                 logger to use
             - abc_p_cutoff (`float`):
-                threshold for the auxilariy classifier
+                threshold for the auxiliary classifier
             - abc_loss_ratio (`float`):
                 loss ration for auxiliary classifier
     """
@@ -153,4 +153,4 @@ class ABC(ImbAlgorithmBase):
         return [
             SSL_Argument('--abc_p_cutoff', float, 0.95),
             SSL_Argument('--abc_loss_ratio', float, 1.0),
-        ]
+        ]        

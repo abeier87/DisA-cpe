@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import torch
+import torch.nn.functional as F
 from semilearn.core.algorithmbase import AlgorithmBase
 from semilearn.core.utils import ALGORITHMS
 from semilearn.algorithms.hooks import PseudoLabelingHook, FixedThresholdingHook
@@ -33,12 +34,14 @@ class FixMatch(AlgorithmBase):
     def __init__(self, args, net_builder, tb_log=None, logger=None):
         super().__init__(args, net_builder, tb_log, logger) 
         # fixmatch specified arguments
-        self.init(T=args.T, p_cutoff=args.p_cutoff, hard_label=args.hard_label)
+        self.init(T=args.T, p_cutoff=args.p_cutoff, hard_label=args.hard_label, loss_type=args.loss_type)
     
-    def init(self, T, p_cutoff, hard_label=True):
+    def init(self, T, p_cutoff, hard_label=True, loss_type='ce'):
         self.T = T
         self.p_cutoff = p_cutoff
         self.use_hard_label = hard_label
+        assert loss_type in ['ce', 'mse']
+        self.loss_type = loss_type
     
     def set_hooks(self):
         self.register_hook(PseudoLabelingHook(), "PseudoLabelingHook")
@@ -89,10 +92,15 @@ class FixMatch(AlgorithmBase):
                                           use_hard_label=self.use_hard_label,
                                           T=self.T,
                                           softmax=False)
+            if self.loss_type == 'mse':
+                if self.use_hard_label:
+                    pseudo_label = F.one_hot(pseudo_label, num_classes=self.num_classes).float()
+                else:
+                    pseudo_label = probs_x_ulb_w
 
             unsup_loss = self.consistency_loss(logits_x_ulb_s,
                                                pseudo_label,
-                                               'ce',
+                                               self.loss_type,
                                                mask=mask)
 
             total_loss = sup_loss + self.lambda_u * unsup_loss
@@ -111,4 +119,5 @@ class FixMatch(AlgorithmBase):
             SSL_Argument('--hard_label', str2bool, True),
             SSL_Argument('--T', float, 0.5),
             SSL_Argument('--p_cutoff', float, 0.95),
+            SSL_Argument('--loss_type', str, 'ce'),
         ]

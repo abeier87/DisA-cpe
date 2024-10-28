@@ -15,6 +15,3 @@ def get_algorithm(args, net_builder, tb_log, logger):
         return alg
     else:
         raise KeyError(f'Unknown algorithm: {str(args.algorithm)}')
-
-
-

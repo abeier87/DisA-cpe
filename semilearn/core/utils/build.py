@@ -70,7 +70,8 @@ def get_dataset(args, algorithm, dataset, num_labels, num_classes, data_dir='./d
         data_dir: data folder
         include_lb_to_ulb: flag of including labeled data into unlabeled data
     """
-    from semilearn.datasets import get_eurosat, get_medmnist, get_semi_aves, get_cifar, get_svhn, get_stl10, get_imagenet, get_json_dset, get_pkl_dset
+    #from semilearn.datasets import get_eurosat, get_medmnist, get_semi_aves, get_cifar, get_svhn, get_stl10, get_imagenet, get_json_dset, get_pkl_dset
+    from semilearn.datasets import get_cifar, get_svhn, get_stl10, get_imagenet
 
     if dataset == "eurosat":
         lb_dset, ulb_dset, eval_dset = get_eurosat(args, algorithm, dataset, num_labels, num_classes, data_dir=data_dir, include_lb_to_ulb=include_lb_to_ulb)
@@ -78,7 +79,7 @@ def get_dataset(args, algorithm, dataset, num_labels, num_classes, data_dir='./d
     elif dataset in ["tissuemnist"]:
         lb_dset, ulb_dset, eval_dset = get_medmnist(args, algorithm, dataset, num_labels, num_classes, data_dir=data_dir,  include_lb_to_ulb=include_lb_to_ulb)
         test_dset = None
-    elif dataset in ["semi_aves", "semi_inat"]:
+    elif dataset == "semi_aves":
         lb_dset, ulb_dset, eval_dset = get_semi_aves(args, algorithm, dataset, train_split='l_train_val', data_dir=data_dir)
         test_dset = None
     elif dataset == "semi_aves_out":
@@ -199,6 +200,7 @@ def get_optimizer(net, optim_name='SGD', lr=0.1, momentum=0.9, weight_decay=0, l
     no_decay = {}
     if hasattr(net, 'no_weight_decay') and bn_wd_skip:
         no_decay = net.no_weight_decay()
+        print('no_decay', no_decay)
     
     if layer_decay != 1.0:
         per_param_args = param_groups_layer_decay(net, lr, weight_decay, no_weight_decay_list=no_decay, layer_decay=layer_decay)

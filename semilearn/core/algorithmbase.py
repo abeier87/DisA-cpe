@@ -6,7 +6,7 @@ import contextlib
 import numpy as np
 from inspect import signature
 from collections import OrderedDict
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, top_k_accuracy_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 
 import torch
 import torch.nn.functional as F
@@ -15,7 +15,7 @@ from torch.cuda.amp import autocast, GradScaler
 from semilearn.core.hooks import Hook, get_priority, CheckpointHook, TimerHook, LoggingHook, DistSamplerSeedHook, ParamUpdateHook, EvaluationHook, EMAHook, WANDBHook, AimHook
 from semilearn.core.utils import get_dataset, get_data_loader, get_optimizer, get_cosine_schedule_with_warmup, Bn_Controller
 from semilearn.core.criterions import CELoss, ConsistencyLoss
-
+from tqdm import tqdm
 
 class AlgorithmBase:
     """
@@ -177,7 +177,10 @@ class AlgorithmBase:
         set optimizer for algorithm
         """
         self.print_fn("Create optimizer and scheduler")
-        optimizer = get_optimizer(self.model, self.args.optim, self.args.lr, self.args.momentum, self.args.weight_decay, self.args.layer_decay)
+        if False:#self.args.algorithm in ['semimeta']:
+            optimizer = get_optimizer(self.model, self.args.optim, self.args.lr, self.args.momentum, self.args.weight_decay, self.args.layer_decay, bn_wd_skip=False)
+        else:
+            optimizer = get_optimizer(self.model, self.args.optim, self.args.lr, self.args.momentum, self.args.weight_decay, self.args.layer_decay)
         scheduler = get_cosine_schedule_with_warmup(optimizer,
                                                     self.num_train_iter,
                                                     num_warmup_steps=self.args.num_warmup_iter)
@@ -326,7 +329,7 @@ class AlgorithmBase:
         total_num = 0.0
         y_true = []
         y_pred = []
-        y_probs = []
+        # y_probs = []
         y_logits = []
         with torch.no_grad():
             for data in eval_loader:
@@ -348,13 +351,11 @@ class AlgorithmBase:
                 y_true.extend(y.cpu().tolist())
                 y_pred.extend(torch.max(logits, dim=-1)[1].cpu().tolist())
                 y_logits.append(logits.cpu().numpy())
-                y_probs.extend(torch.softmax(logits, dim=-1).cpu().tolist())
                 total_loss += loss.item() * num_batch
         y_true = np.array(y_true)
         y_pred = np.array(y_pred)
         y_logits = np.concatenate(y_logits)
         top1 = accuracy_score(y_true, y_pred)
-        top5 = top_k_accuracy_score(y_true, y_probs, k=5)
         balanced_top1 = balanced_accuracy_score(y_true, y_pred)
         precision = precision_score(y_true, y_pred, average='macro')
         recall = recall_score(y_true, y_pred, average='macro')
@@ -365,7 +366,7 @@ class AlgorithmBase:
         self.ema.restore()
         self.model.train()
 
-        eval_dict = {eval_dest+'/loss': total_loss / total_num, eval_dest+'/top-1-acc': top1, eval_dest+'/top-5-acc': top5, 
+        eval_dict = {eval_dest+'/loss': total_loss / total_num, eval_dest+'/top-1-acc': top1, 
                      eval_dest+'/balanced_acc': balanced_top1, eval_dest+'/precision': precision, eval_dest+'/recall': recall, eval_dest+'/F1': F1}
         if return_logits:
             eval_dict[eval_dest+'/logits'] = y_logits
@@ -527,6 +528,8 @@ class ImbAlgorithmBase(AlgorithmBase):
             return super().set_optimizer() 
         elif self.args.dataset in ['imagenet', 'imagenet127']:
             return super().set_optimizer() 
+        #elif self.args.imb_algorithm in ['acr', 'dst']:
+        #    return super().set_optimizer() 
         else:
             self.print_fn("Create optimizer and scheduler")
             optimizer = get_optimizer(self.model, self.args.optim, self.args.lr, self.args.momentum, self.args.weight_decay, self.args.layer_decay, bn_wd_skip=False)
