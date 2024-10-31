@@ -34,14 +34,18 @@ class FixMatch(AlgorithmBase):
     def __init__(self, args, net_builder, tb_log=None, logger=None):
         super().__init__(args, net_builder, tb_log, logger) 
         # fixmatch specified arguments
-        self.init(T=args.T, p_cutoff=args.p_cutoff, hard_label=args.hard_label, loss_type=args.loss_type)
-    
-    def init(self, T, p_cutoff, hard_label=True, loss_type='ce'):
-        self.T = T
-        self.p_cutoff = p_cutoff
-        self.use_hard_label = hard_label
+        self.T = args.T
+        self.p_cutoff = args.p_cutoff
+        self.use_hard_label = args.hard_label
         assert loss_type in ['ce', 'mse']
-        self.loss_type = loss_type
+        self.loss_type = args.loss_type
+        
+    # def init(self, T, p_cutoff, hard_label=True, loss_type='ce'):
+    #     self.T = T
+    #     self.p_cutoff = p_cutoff
+    #     self.use_hard_label = hard_label
+    #     assert loss_type in ['ce', 'mse']
+    #     self.loss_type = loss_type
     
     def set_hooks(self):
         self.register_hook(PseudoLabelingHook(), "PseudoLabelingHook")
